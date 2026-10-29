@@ -1,0 +1,57 @@
+name: build
+on:
+  push:
+    branches: [ main, master ]
+    tags: [ 'v*' ]
+  workflow_dispatch:
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configurar
+        run: cmake -S . -B build -A x64
+      - name: Compilar
+        run: cmake --build build --config Release
+      - name: Empaquetar
+        run: cmake --build build --config Release --target package_game
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CyberNemesis-windows-x64
+          path: build/dist/CyberNemesis-windows-x64.zip
+
+  linux:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Dependencias
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake git pkg-config libwayland-dev wayland-protocols \
+            libxkbcommon-dev libegl1-mesa-dev libgl1-mesa-dev libx11-dev libxrandr-dev libxi-dev \
+            libxcursor-dev libxinerama-dev libasound2-dev
+      - name: Compilar
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build -j
+          cmake --build build --target package_game
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CyberNemesis-linux-x64
+          path: build/dist/CyberNemesis-linux-x64.tar.gz
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [ windows, linux ]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*
