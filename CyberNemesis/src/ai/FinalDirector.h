@@ -1,0 +1,45 @@
+#pragma once
+#include "raylib.h"
+#include <vector>
+
+class Hero;
+class Boss;
+class Hazards;
+class BulletField;
+
+class FinalDirector {
+public:
+    enum class Pattern { None, Ring, Spiral, Rain, Fan, Sine, Blasters, Walls, Waves, Bounce, Pillars };
+
+    void Start();
+    void Update(float dt, Hero& hero, const Boss& boss, BulletField& bf, Hazards& hz, float hpFrac);
+
+    const char* PatternName() const;
+    bool IsFlyingMode() const { return flying_; }
+    bool InRest() const { return phase_ == Phase::Rest; }
+    int  Tier() const { return tier_; }
+    bool ConsumeTierUp() { bool r = tierUp_; tierUp_ = false; return r; }
+    int  ConsumeBursts() { int r = bursts_; bursts_ = 0; return r; }
+
+private:
+    enum class Phase { Intro, Turn, Rest };
+    struct Active {
+        Pattern p = Pattern::None;
+        float t = 0.f, dur = 8.f, tick = 0.f, ang = 0.f, aux = 0.f, scale = 1.f;
+        int   n = 0;
+    };
+
+    void BeginTurn(const Boss& boss);
+    void Run(Active& a, float dt, Hero& hero, const Boss& boss, BulletField& bf, Hazards& hz);
+    void SteerTurn(Hero& hero, const Boss& boss) const;
+    void SteerRest(Hero& hero, const Boss& boss) const;
+    Pattern PickPattern() const;
+    static const char* NameOf(Pattern p);
+
+    Phase  phase_ = Phase::Intro;
+    float  phaseT_ = 0.f, clock_ = 0.f, restDur_ = 2.2f;
+    bool   flying_ = true, tierUp_ = false;
+    int    tier_ = 0, turns_ = 0, bursts_ = 0;
+    Pattern last_ = Pattern::None, main_ = Pattern::None;
+    std::vector<Active> active_;
+};

@@ -1,0 +1,5 @@
+build/
+build-win/
+release/
+brain.data
+*.o
